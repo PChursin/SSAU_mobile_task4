@@ -1,5 +1,13 @@
 package ru.ssau.mobile.ssau_mobile_task4;
 
+import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
@@ -10,9 +18,42 @@ import java.io.Serializable;
  */
 
 public class MarkerData implements Serializable{
-    MarkerOptions marker;
+    double lat, lng;
+    int iconId = -1;
+    String title;
 
     public MarkerData(MarkerOptions m) {
-        marker = m;
+        update(m);
+    }
+
+    private void update(MarkerOptions m) {
+        LatLng latLng = m.getPosition();
+        lat = latLng.latitude;
+        lng = latLng.longitude;
+        title = m.getTitle();
+    }
+
+    public LatLng getPosition() {
+        return new LatLng(lat, lng);
+    }
+
+    public MarkerOptions getMarkerOptions(Context context) {
+        LatLng latLng = new LatLng(lat, lng);
+        MarkerOptions mo = new MarkerOptions().position(latLng).title((title == null ? "" : title));
+        if (iconId != -1) {
+            Bitmap icon = BitmapFactory.decodeResource(context.getResources(),
+                    iconId);
+            icon = Bitmap.createScaledBitmap(icon, 100, 100, false);
+            mo = mo.icon(BitmapDescriptorFactory.fromBitmap(icon));
+        }
+        return mo;
+    }
+
+    public int getIconId() {
+        return iconId;
+    }
+
+    public void setIconId(int iconId) {
+        this.iconId = iconId;
     }
 }

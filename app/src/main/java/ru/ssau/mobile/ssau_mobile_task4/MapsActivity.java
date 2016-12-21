@@ -7,6 +7,8 @@ import android.graphics.drawable.Drawable;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -32,6 +34,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     private ArrayList<MarkerData> markers;
     private HashMap<String, MarkerData> idToData;
+    private View markerOptions;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,9 +56,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             markers = (ArrayList<MarkerData>) savedInstanceState.get("markers");
         }
 
+        markerOptions = findViewById(R.id.marker_buttons);
+        Button left = (Button) markerOptions.findViewById(R.id.marker_left_button);
+        left.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.d(TAG, "onClick: LEFT");
+            }
+        });
+        Button right = (Button) markerOptions.findViewById(R.id.marker_right_button);
+        right.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.d(TAG, "onClick: RIGHT");
+            }
+        });
         //end
     }
 
+    public void showMarkerOptions() {
+        markerOptions.setVisibility(View.VISIBLE);
+    }
+
+    public void hideMarkerOptions() {
+        markerOptions.setVisibility(View.GONE);
+    }
 
     /**
      * Manipulates the map once available.
@@ -71,13 +96,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap = googleMap;
         mMap.setOnMarkerClickListener(this);
         mMap.setOnMapLongClickListener(this);
+        mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+            //private final View window = getLayoutInflater().inflate(R.layout.info_window, null);
+            @Override
+            public View getInfoWindow(Marker marker) {
+                showMarkerOptions();
+                return null;
+            }
+
+            @Override
+            public View getInfoContents(Marker marker) {
+                return null;
+            }
+        });
+
+        mMap.setOnInfoWindowCloseListener(new GoogleMap.OnInfoWindowCloseListener() {
+            @Override
+            public void onInfoWindowClose(Marker marker) {
+                hideMarkerOptions();
+            }
+        });
 
         // Add a marker in Sydney and move the camera
         for (MarkerData md : markers) {
-            Marker m = mMap.addMarker(md.marker);
+            Marker m = mMap.addMarker(md.getMarkerOptions(this));
             idToData.put(m.getId(), md);
         }
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(markers.get(markers.size()-1).marker.getPosition()));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(markers.get(markers.size()-1).getPosition()));
     }
 
     @Override
@@ -88,14 +133,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public boolean onMarkerClick(Marker marker) {
         Log.d(TAG, "onMarkerClick");
+        marker.showInfoWindow();
         MarkerData md = idToData.get(marker.getId());
         int pos = (int) (Math.random()*MARKER_ICONS.length);
-        BitmapDescriptor desc = BitmapDescriptorFactory.fromResource(MARKER_ICONS[pos]);
+        //BitmapDescriptor desc = BitmapDescriptorFactory.fromResource(MARKER_ICONS[pos]);
         Bitmap icon = BitmapFactory.decodeResource(getResources(),
                 MARKER_ICONS[pos]);
         icon = Bitmap.createScaledBitmap(icon, 100, 100, false);
         marker.setIcon(BitmapDescriptorFactory.fromBitmap(icon));
-        md.marker = md.marker.icon(BitmapDescriptorFactory.fromBitmap(icon));
+        md.setIconId(MARKER_ICONS[pos]);
         return true;
     }
 
