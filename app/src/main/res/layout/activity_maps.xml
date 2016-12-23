@@ -1,5 +1,6 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:map="http://schemas.android.com/apk/res-auto"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_height="match_parent"
     android:layout_width="match_parent"
@@ -13,14 +14,71 @@
     android:name="com.google.android.gms.maps.SupportMapFragment"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_weight="99"
     tools:context="ru.ssau.mobile.ssau_mobile_task4.MapsActivity" />
+
+    <android.support.design.widget.FloatingActionButton
+        android:layout_width="@dimen/zoom_button_size"
+        android:layout_gravity="center_vertical|right"
+        android:layout_marginRight="@dimen/fab_margin"
+        android:layout_marginBottom="55dp"
+        android:adjustViewBounds="true"
+        android:clickable="true"
+        android:visibility="gone"
+        app:fabSize="mini"
+        android:src="@drawable/ic_put_marker"
+        android:id="@+id/fab_put_marker"
+        android:scaleType="centerCrop"
+        android:layout_height="@dimen/zoom_button_size" />
+    <android.support.design.widget.FloatingActionButton
+        android:layout_width="@dimen/zoom_button_size"
+        android:layout_gravity="center_vertical|right"
+        android:layout_marginRight="@dimen/fab_margin"
+        android:adjustViewBounds="true"
+        android:clickable="true"
+        app:fabSize="mini"
+        android:src="@drawable/ic_locate"
+        android:id="@+id/fab_locate"
+        android:scaleType="centerCrop"
+        android:layout_height="@dimen/zoom_button_size" />
+
+    <ImageButton
+        android:layout_width="@dimen/zoom_button_size"
+        android:layout_height="@dimen/zoom_button_size"
+        android:layout_gravity="top|left"
+        android:layout_margin="@dimen/fab_margin"
+        android:src="@drawable/ic_search"
+        android:scaleType="centerCrop"
+        android:adjustViewBounds="true"
+        android:background="@color/cast_expanded_controller_ad_label_background_color"
+        android:id="@+id/search_button"/>
+
+    <LinearLayout
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:layout_width="0px"
+        android:layout_height="0px"
+        android:id="@+id/focus_dummy"
+        android:orientation="horizontal" />
+    
+    <!--<ru.ssau.mobile.ssau_mobile_task4.AddressSearchAutoComplete-->
+    <AutoCompleteTextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/fab_margin"
+        android:hint="Type address here"
+        android:background="@android:color/white"
+        android:visibility="gone"
+        android:id="@+id/search_text"
+        android:dropDownHeight="wrap_content"
+        android:dropDownWidth="match_parent"
+        android:popupBackground="@android:color/white"
+        android:imeOptions="actionSearch|flagNoExtractUi" />
 
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_weight="1"
         android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
         android:animateLayoutChanges="true"
         android:visibility="gone"
         android:id="@+id/marker_buttons">
@@ -39,4 +97,35 @@
             android:text="Right"
             android:id="@+id/marker_right_button"/>
     </LinearLayout>
-</LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|right"
+        android:orientation="vertical"
+        android:layout_marginTop="80dp"
+        android:layout_marginRight="@dimen/fab_margin"
+        android:padding="0dp">
+        <ImageButton
+            android:layout_width="@dimen/zoom_button_size"
+            android:layout_height="@dimen/zoom_button_size"
+            android:layout_gravity="center_vertical|right"
+            android:layout_margin="0dp"
+            android:src="@drawable/ic_zoom_in"
+            android:scaleType="centerCrop"
+            android:adjustViewBounds="true"
+            android:background="@color/cast_expanded_controller_ad_label_background_color"
+            android:id="@+id/zoom_in"/>
+        <ImageButton
+            android:layout_width="@dimen/zoom_button_size"
+            android:layout_height="@dimen/zoom_button_size"
+            android:layout_gravity="center_vertical|right"
+            android:layout_margin="0dp"
+            android:cropToPadding="true"
+            android:src="@drawable/ic_zoom_out"
+            android:scaleType="centerCrop"
+            android:adjustViewBounds="true"
+            android:background="@color/cast_expanded_controller_ad_label_background_color"
+            android:id="@+id/zoom_out"/>
+    </LinearLayout>
+</FrameLayout>

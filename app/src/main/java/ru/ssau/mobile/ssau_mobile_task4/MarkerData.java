@@ -25,6 +25,16 @@ public class MarkerData implements Serializable{
     public MarkerData(MarkerOptions m) {
         update(m);
     }
+    public MarkerData(Marker m) {
+        update(m);
+    }
+
+    private void update(Marker m) {
+        LatLng latLng = m.getPosition();
+        lat = latLng.latitude;
+        lng = latLng.longitude;
+        title = m.getTitle();
+    }
 
     private void update(MarkerOptions m) {
         LatLng latLng = m.getPosition();
