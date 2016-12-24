@@ -1,28 +1,24 @@
 package ru.ssau.mobile.ssau_mobile_task4;
 
-import android.*;
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.location.LocationManager;
+import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.FragmentActivity;
-import android.os.Bundle;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.widget.SearchView;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.KeyEvent;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
@@ -30,33 +26,27 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
-import android.widget.GridView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.places.AutocompletePrediction;
-import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import ru.ssau.mobile.ssau_mobile_task4.adapters.IconChooserAdapter;
 import ru.ssau.mobile.ssau_mobile_task4.adapters.SearchAdapter;
 import ru.ssau.mobile.ssau_mobile_task4.location.FusedLocationReceiver;
 import ru.ssau.mobile.ssau_mobile_task4.location.FusedLocationService;
@@ -83,11 +73,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     public static final String TAG = "MapsActivity";
     private GoogleMap mMap;
-    private ArrayList<MarkerData> markers;
+    private ArrayList<MarkerData> markers, tempRoute;
+    private ArrayList<TravelData> travels;
     private HashMap<String, MarkerData> idToData;
     private View markerOptions;
     private FloatingActionButton putMarkerFab;
     private FloatingActionButton deleteMarkerFab;
+    private FloatingActionButton doneFab;
+
+    PolylineOptions rectOptions;
+    Polyline polyline;
 
     private LinearLayout focusDummy;
 
@@ -96,6 +91,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private List<Address> foundAddresses;
     Geocoder geocoder;
     FusedLocationService fusedLocationService;
+    private boolean routing = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,15 +105,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         geocoder = new Geocoder(this);
 
-
         setContentView(R.layout.activity_maps);
         focusDummy = (LinearLayout) findViewById(R.id.focus_dummy);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
         idToData = new HashMap<>();
+        travels = new ArrayList<>();
         //test
         if (savedInstanceState == null) {
             markers = new ArrayList<>();
@@ -131,7 +126,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         left.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Log.d(TAG, "onClick: LEFT");
+                routing = true;
+                doneFab.setVisibility(View.VISIBLE);
+                tempRoute = new ArrayList<MarkerData>();
+                tempRoute.add(idToData.get(activeMarker.getId()));
+                rectOptions = new PolylineOptions().add(activeMarker.getPosition());
+                hideMarkerOptions();
             }
         });
         Button right = (Button) markerOptions.findViewById(R.id.marker_right_button);
@@ -172,7 +172,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onClick(View view) {
                 Log.d(TAG, "onClick FAB");
-                fusedLocationService = new FusedLocationService(MapsActivity.this, receiver);
+
+                final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
+
+                if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+                    buildAlertMessageNoGps();
+                } else
+                    fusedLocationService = new FusedLocationService(MapsActivity.this, receiver);
             }
         });
 
@@ -205,10 +211,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         deleteMarkerFab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                hideMarkerOptions();
                 deleteMarkerFab.setVisibility(View.GONE);
                 MarkerData md = idToData.remove(activeMarker.getId());
                 markers.remove(md);
                 activeMarker.remove();
+            }
+        });
+
+        doneFab = (FloatingActionButton) findViewById(R.id.fab_done);
+        doneFab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                routing = false;
+                TravelData travel = new TravelData();
+                travel.color = currentColor;
+                travel.markers = tempRoute;
+                travel.title = "";
+                travels.add(travel);
+                tempRoute = null;
+                currentColor = (currentColor+1)%TRAVEL_COLORS.length;
+                view.setVisibility(View.GONE);
+                rectOptions = null;
             }
         });
 
@@ -379,11 +403,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public boolean onMarkerClick(Marker marker) {
         Log.d(TAG, "onMarkerClick");
-        marker.showInfoWindow();
-        if (marker.getTitle() == null || marker.getTitle().equals(""))
-            marker.setTitle("Selected marker");
         activeMarker = marker;
-        showMarkerOptions();
+        if (!routing) {
+            if (marker.getTitle() == null || marker.getTitle().equals("")) {
+                marker.setTitle("Selected marker");
+            }
+            marker.showInfoWindow();
+            showMarkerOptions();
+            /*if (polyline != null) {
+                polyline.remove();
+                polyline = null;
+            }*/
+
+        } else {
         /*
         MarkerData md = idToData.get(marker.getId());
         int pos = (int) (Math.random()*MARKER_ICONS.length);
@@ -393,6 +425,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         marker.setIcon(BitmapDescriptorFactory.fromBitmap(icon));
         md.setIconId(MARKER_ICONS[pos]);
         */
+            if (tempRoute.indexOf(idToData.get(marker.getId())) < 0) {
+                rectOptions.add(marker.getPosition());
+                rectOptions.color(TRAVEL_COLORS[currentColor]);
+                polyline = mMap.addPolyline(rectOptions);
+                tempRoute.add(idToData.get(marker));
+            }
+
+        }
         return true;
     }
 
@@ -433,5 +473,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public static void hideSoftKeyboard(Activity activity) {
         InputMethodManager inputMethodManager = (InputMethodManager)  activity.getSystemService(Activity.INPUT_METHOD_SERVICE);
         inputMethodManager.hideSoftInputFromWindow(activity.getCurrentFocus().getWindowToken(), 0);
+    }
+
+    private void buildAlertMessageNoGps() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(MapsActivity.this);
+        builder.setMessage("Your GPS seems to be disabled, do you want to enable it?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        dialog.cancel();
+                    }
+                });
+        final AlertDialog alert = builder.create();
+        alert.show();
     }
 }

@@ -7,9 +7,7 @@
     android:orientation="vertical"
     android:weightSum="100">
 
-<fragment xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:map="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<fragment
     android:id="@+id/map"
     android:name="com.google.android.gms.maps.SupportMapFragment"
     android:layout_width="match_parent"
@@ -44,6 +42,19 @@
         android:scaleType="centerCrop"
         android:layout_height="@dimen/zoom_button_size" />
     <android.support.design.widget.FloatingActionButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|bottom"
+        android:layout_marginBottom="@dimen/fab_margin"
+        android:adjustViewBounds="true"
+        android:visibility="gone"
+        android:clickable="true"
+        app:fabSize="normal"
+        android:src="@drawable/ic_done"
+        android:id="@+id/fab_done"
+        android:scaleType="centerCrop"
+        map:backgroundTint="?attr/colorButtonNormal" />
+    <android.support.design.widget.FloatingActionButton
         android:layout_width="@dimen/zoom_button_size"
         android:layout_gravity="center_vertical|right"
         android:layout_marginRight="@dimen/fab_margin"
@@ -65,6 +76,30 @@
         android:adjustViewBounds="true"
         android:background="@color/cast_expanded_controller_ad_label_background_color"
         android:id="@+id/search_button"/>
+
+    <ImageButton
+        android:layout_width="@dimen/zoom_button_size"
+        android:layout_height="@dimen/zoom_button_size"
+        android:layout_gravity="top|left"
+        android:layout_marginLeft="@dimen/fab_margin"
+        android:layout_marginTop="55dp"
+        android:src="@drawable/ic_travel"
+        android:scaleType="centerCrop"
+        android:adjustViewBounds="true"
+        android:background="@color/cast_expanded_controller_ad_label_background_color"
+        android:id="@+id/travels_button"/>
+
+    <ImageButton
+        android:layout_width="@dimen/zoom_button_size"
+        android:layout_height="@dimen/zoom_button_size"
+        android:layout_gravity="top|left"
+        android:layout_marginLeft="@dimen/fab_margin"
+        android:layout_marginTop="100dp"
+        android:src="@drawable/ic_marker"
+        android:scaleType="centerCrop"
+        android:adjustViewBounds="true"
+        android:background="@color/cast_expanded_controller_ad_label_background_color"
+        android:id="@+id/markers_button"/>
 
     <LinearLayout
         android:focusable="true"
@@ -101,14 +136,14 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical|left"
             android:layout_weight="1"
-            android:text="Left"
+            android:text="Start route"
             android:id="@+id/marker_left_button"/>
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical|right"
             android:layout_weight="1"
-            android:text="Right"
+            android:text="Edit marker"
             android:id="@+id/marker_right_button"/>
     </LinearLayout>
 
