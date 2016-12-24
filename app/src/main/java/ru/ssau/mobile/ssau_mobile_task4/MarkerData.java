@@ -12,6 +12,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 
 /**
  * Created by Pavel on 21.12.2016.
@@ -21,7 +22,14 @@ public class MarkerData implements Serializable{
     double lat, lng;
     int iconId = -1;
     String title;
+    ArrayList<String> photos;
 
+    public MarkerData(double lat, double lng, int iconId, String title) {
+        this.lat = lat;
+        this.lng = lng;
+        this.iconId = iconId;
+        this.title = title;
+    }
     public MarkerData(MarkerOptions m) {
         update(m);
     }

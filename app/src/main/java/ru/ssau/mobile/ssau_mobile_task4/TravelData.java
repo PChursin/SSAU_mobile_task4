@@ -12,6 +12,5 @@ import java.util.ArrayList;
 public class TravelData implements Serializable{
     String title;
     ArrayList<MarkerData> markers;
-    ArrayList<String> photos;
     int color;
 }

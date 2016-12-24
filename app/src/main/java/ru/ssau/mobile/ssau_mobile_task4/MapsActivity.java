@@ -4,6 +4,7 @@ import android.*;
 import android.Manifest;
 import android.app.Activity;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -25,6 +26,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
@@ -75,6 +77,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Color.rgb(179, 100, 53), Color.rgb(192, 255, 140), Color.rgb(255, 247, 140),
             Color.rgb(255, 208, 140), Color.rgb(140, 234, 255), Color.rgb(255, 140, 157)
     };
+    public static final int MARKER_REQUEST = 25;
 
     public int currentColor = 0;
 
@@ -84,10 +87,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private HashMap<String, MarkerData> idToData;
     private View markerOptions;
     private FloatingActionButton putMarkerFab;
+    private FloatingActionButton deleteMarkerFab;
 
     private LinearLayout focusDummy;
 
     private Marker locationMarker = null;
+    private Marker activeMarker = null;
+    private List<Address> foundAddresses;
     Geocoder geocoder;
     FusedLocationService fusedLocationService;
 
@@ -114,10 +120,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         idToData = new HashMap<>();
         //test
         if (savedInstanceState == null) {
-            LatLng sydney = new LatLng(-34, 151);
-            MarkerOptions m = new MarkerOptions().position(sydney).title("Marker in Sydney");
             markers = new ArrayList<>();
-            markers.add(new MarkerData(m));
+            markers.add(new MarkerData(-34, 151, R.drawable.red1, "Marker in Sydney"));
         } else {
             markers = (ArrayList<MarkerData>) savedInstanceState.get("markers");
         }
@@ -134,7 +138,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         right.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Log.d(TAG, "onClick: RIGHT");
+                Intent intent = new Intent(MapsActivity.this, EditActivity.class);
+                intent.putExtra("marker", idToData.get(activeMarker.getId()));
+                MapsActivity.this.startActivityForResult(intent, MARKER_REQUEST);
             }
         });
         //end
@@ -142,7 +148,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
        final FusedLocationReceiver receiver = new FusedLocationReceiver() {
            @Override
            public void onLocationChanged() {
-               hideMarkerOptions();
+               if (activeMarker != null)
+                   activeMarker.hideInfoWindow();
                Location location = fusedLocationService.getLocation();
                Log.d(TAG, "onLocationChanged: lat "+location.getLatitude() + " lng " + location.getLongitude());
                LatLng position = new LatLng(location.getLatitude(), location.getLongitude());
@@ -194,6 +201,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+        deleteMarkerFab = (FloatingActionButton) findViewById(R.id.fab_delete_marker);
+        deleteMarkerFab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                deleteMarkerFab.setVisibility(View.GONE);
+                MarkerData md = idToData.remove(activeMarker.getId());
+                markers.remove(md);
+                activeMarker.remove();
+            }
+        });
+
         ImageButton zoomIn = (ImageButton) findViewById(R.id.zoom_in);
         zoomIn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -214,13 +232,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void setUpSearch() {
         final AutoCompleteTextView searchView = (AutoCompleteTextView) findViewById(R.id.search_text);
-        //ArrayAdapter<String> searchAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);
-//        SearchAdapter searchAdapter = new SearchAdapter(this, android.R.layout.simple_list_item_1);
-
-        //searchView.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line,
-        //      new String[]{"lol1", "lal2", "lel3", "lul4"}));
-
-        SearchAdapter searchAdapter = new SearchAdapter(this, android.R.layout.simple_dropdown_item_1line);
+        SearchAdapter searchAdapter = new SearchAdapter(this, android.R.layout.simple_dropdown_item_1line, new ArrayList<Address>());
         searchView.setAdapter(searchAdapter);
         searchView.addTextChangedListener(new TextWatcher() {
             @Override
@@ -234,8 +246,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if (charSequence.length() > 1) {
                     ArrayList<String> results = new ArrayList<>();
                     try {
-                        List<Address> addresses = geocoder.getFromLocationName(charSequence.toString(), 5);
-                        for (Address a : addresses) {
+                        foundAddresses = geocoder.getFromLocationName(charSequence.toString(), 5);
+                        for (Address a : foundAddresses) {
                             int maxLine = a.getMaxAddressLineIndex();
                             String res = a.getAddressLine(0)+
                                     (maxLine > 0 ? ", "+a.getAddressLine(1)+
@@ -243,11 +255,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             results.add(res);
                             Log.d(TAG, "onTextChanged: result = "+res);
                         }
-                        //((SearchAdapter)searchView.getAdapter()).setData(results);
+//                        ((SearchAdapter)searchView.getAdapter()).setData(results);
+//                        SearchAdapter searchAdapter = new SearchAdapter(MapsActivity.this, android.R.layout.simple_list_item_1);
                         searchView.setAdapter(new ArrayAdapter<String>(MapsActivity.this, android.R.layout.simple_dropdown_item_1line, results));
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
+                    /*try {
+                        List<Address> addresses = geocoder.getFromLocationName(charSequence.toString(), 5);
+                        SearchAdapter searchAdapter = new SearchAdapter(MapsActivity.this, android.R.layout.simple_dropdown_item_1line, addresses);
+                        searchView.setAdapter(searchAdapter);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }*/
                 }
             }
 
@@ -274,18 +294,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if (view instanceof AutoCompleteTextView && !b) {
                     searchView.setVisibility(View.GONE);
                     searchButton.setVisibility(View.VISIBLE);
+                    searchView.setText("");
                     //hideSoftKeyboard(MapsActivity.this);
                 }
+            }
+        });
+
+        searchView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                Address a = foundAddresses.get(i);
+                MarkerData md = new MarkerData(a.getLatitude(), a.getLongitude(), R.drawable.green1, "");
+                Marker m = mMap.addMarker(md.getMarkerOptions(MapsActivity.this));
+                mMap.moveCamera(CameraUpdateFactory.newLatLng(m.getPosition()));
+                markers.add(md);
+                idToData.put(m.getId(), md);
             }
         });
     }
 
     public void showMarkerOptions() {
         markerOptions.setVisibility(View.VISIBLE);
+        deleteMarkerFab.setVisibility(View.VISIBLE);
     }
 
     public void hideMarkerOptions() {
         markerOptions.setVisibility(View.GONE);
+        deleteMarkerFab.setVisibility(View.GONE);
     }
 
     /**
@@ -306,12 +341,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onMapClick(LatLng latLng) {
                 hideSoftKeyboard(MapsActivity.this);
+//                if (activeMarker == null)
+                hideMarkerOptions();
                 focusDummy.requestFocus();
             }
         });
         mMap.setOnInfoWindowCloseListener(new GoogleMap.OnInfoWindowCloseListener() {
             @Override
             public void onInfoWindowClose(Marker marker) {
+                activeMarker = null;
                 hideMarkerOptions();
                 if (locationMarker != null) {
                     locationMarker.remove();
@@ -331,37 +369,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onMapLongClick(LatLng latLng) {
-
+        MarkerData md = new MarkerData(latLng.latitude, latLng.longitude, R.drawable.red1, "");
+        Marker m = mMap.addMarker(md.getMarkerOptions(MapsActivity.this));
+        markers.add(md);
+        idToData.put(m.getId(), md);
+        putMarkerFab.setVisibility(View.GONE);
     }
 
     @Override
     public boolean onMarkerClick(Marker marker) {
         Log.d(TAG, "onMarkerClick");
         marker.showInfoWindow();
+        if (marker.getTitle() == null || marker.getTitle().equals(""))
+            marker.setTitle("Selected marker");
+        activeMarker = marker;
         showMarkerOptions();
-
-        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
-        LayoutInflater inflater = getLayoutInflater();
-        View convertView = inflater.inflate(R.layout.icon_chooser, null);
-        dialogBuilder.setView(convertView);
-        dialogBuilder.setTitle("Choose marker icon");
-        dialogBuilder.setNegativeButton("cancel", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                dialogInterface.dismiss();
-            }
-        });
-        dialogBuilder.setPositiveButton("ok", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                dialogInterface.dismiss();
-            }
-        });
-        IconChooserAdapter adapter = new IconChooserAdapter(this, MARKER_ICONS, marker);
-        GridView grid = (GridView) convertView.findViewById(R.id.icon_chooser);
-        grid.setAdapter(adapter);
-        dialogBuilder.show();
-
         /*
         MarkerData md = idToData.get(marker.getId());
         int pos = (int) (Math.random()*MARKER_ICONS.length);
@@ -378,6 +400,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onSaveInstanceState(Bundle outState) {
         outState.putSerializable("markers", markers);
         super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == MARKER_REQUEST) {
+            if (resultCode == RESULT_OK) {
+                MarkerData md = (MarkerData) data.getSerializableExtra("marker");
+                MarkerData old = idToData.get(activeMarker.getId());
+                markers.remove(old);
+                Marker m = mMap.addMarker(md.getMarkerOptions(MapsActivity.this));
+                markers.add(md);
+                idToData.remove(activeMarker.getId());
+                idToData.put(m.getId(), md);
+                activeMarker.remove();
+                activeMarker = null;
+            }
+        }
     }
 
     private boolean isGooglePlayServicesAvailable() {

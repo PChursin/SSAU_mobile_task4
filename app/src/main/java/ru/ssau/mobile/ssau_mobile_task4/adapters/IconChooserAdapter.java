@@ -3,10 +3,12 @@ package ru.ssau.mobile.ssau_mobile_task4.adapters;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.res.ResourcesCompat;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,6 +21,7 @@ import android.widget.TextView;
 
 import com.google.android.gms.maps.model.Marker;
 
+import ru.ssau.mobile.ssau_mobile_task4.MarkerData;
 import ru.ssau.mobile.ssau_mobile_task4.R;
 
 /**
@@ -28,18 +31,21 @@ import ru.ssau.mobile.ssau_mobile_task4.R;
 public class IconChooserAdapter extends BaseAdapter {
     Context context;
     int[] data;
-    Marker marker;
+    MarkerData marker;
+    View lastView;
+    int selectedId;
 
-    public IconChooserAdapter(Context context, int[] objects, Marker marker) {
+    public IconChooserAdapter(Context context, int[] objects, MarkerData marker) {
         this.context = context;
         data = objects;
         this.marker = marker;
+        selectedId = data[0];
     }
 
     @NonNull
     @Override
     public View getView(int position, View view, @NonNull ViewGroup parent) {
-        int iconId = data[position];
+        final int iconId = data[position];
 
         if (view == null) {
             view = LayoutInflater.from(context)
@@ -49,10 +55,23 @@ public class IconChooserAdapter extends BaseAdapter {
         } else {
             //viewHolder = (ViewHolder) view.getTag();
         }
-        ImageButton button = (ImageButton) view.findViewById(R.id.icon_chooser_image);
+        final ImageButton button = (ImageButton) view.findViewById(R.id.icon_chooser_image);
         Bitmap icon = BitmapFactory.decodeResource(context.getResources(),
                 iconId);
         button.setImageDrawable(new BitmapDrawable(context.getResources(), icon));
+        button.setBackgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.colorGray, null));
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                marker.setIconId(iconId);
+                if (lastView != null)
+                    lastView.setBackgroundColor(ResourcesCompat.getColor(
+                            context.getResources(), R.color.colorGray, null));
+                view.setBackgroundColor(Color.GREEN);
+                lastView = view;
+                selectedId = iconId;
+            }
+        });
         return view;
     }
 
@@ -71,6 +90,10 @@ public class IconChooserAdapter extends BaseAdapter {
     @Override
     public long getItemId(int i) {
         return getItem(i);
+    }
+
+    public int getSelectedId() {
+        return selectedId;
     }
 
     /*
